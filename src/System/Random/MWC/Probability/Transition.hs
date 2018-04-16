@@ -6,9 +6,10 @@ import Control.Monad.Primitive
 -- import qualified Control.Monad.State as S
 
 import Control.Monad.Trans.Class (lift)
-import Control.Monad.Trans.State.Strict (StateT, get, put, evalStateT)
-import Control.Monad.Trans.Reader
-import Control.Monad.Log
+import Control.Monad.Trans.State.Strict (StateT(..), get, put, evalStateT)
+import Control.Monad.Trans.Reader (ReaderT(..), ask, asks)
+import Control.Monad.IO.Class (MonadIO(..), liftIO)
+import Control.Monad.Log (MonadLog(..), WithSeverity(..), Severity(..), LoggingT(..), runLoggingT, renderWithSeverity, withFDHandler, defaultBatchingOptions, logDebug, logInfo, logNotice, logWarning, logError)
 
 import System.Random.MWC.Probability
 
