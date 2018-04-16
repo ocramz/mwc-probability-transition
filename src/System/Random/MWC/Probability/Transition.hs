@@ -105,17 +105,18 @@ t5' gen = do
 
 --
 
--- t6 :: Monad m => (b -> Prob m a) -> Gen (PrimState m) -> StateT b m a
 t6 :: MonadLog (WithSeverity msg) m =>
       (s -> Prob m a)
-   -> (a -> s -> (Severity, msg))
+   -> (a -> s -> s)
+   -> (s -> WithSeverity msg)   
    -> Gen (PrimState m)
    -> StateT s m a
-t6 mf logf gen = StateT $ \s -> do
+t6 mf stf logf gen = StateT $ \s -> do
   w <- sample (mf s) gen
-  let (lsev, logEntry) = logf w s
-  logMessage (WithSeverity lsev logEntry)
-  return (w, s)
+  let s' = stf w s
+      le@(WithSeverity _ _) = logf s'
+  logMessage le
+  return (w, s')
 
 
 -- newtype T6 s m a = T6 { unT6 :: Gen (PrimState m) -> StateT s m a } deriving (Functor, Monad)
