@@ -106,10 +106,10 @@ t5' gen = do
 --
 
 t6 :: MonadLog (WithSeverity msg) m =>
-      (s -> Prob m a)
-   -> (a -> s -> s)
-   -> (s -> WithSeverity msg)   
-   -> Gen (PrimState m)
+      (s -> Prob m a)         -- ^ Sampling function (using current state)
+   -> (a -> s -> s)           -- ^ State update
+   -> (s -> WithSeverity msg) -- ^ Log generation from updated state
+   -> Gen (PrimState m)       -- ^ PRNG
    -> StateT s m a
 t6 mf stf logf gen = StateT $ \s -> do
   w <- sample (mf s) gen
