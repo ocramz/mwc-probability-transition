@@ -167,6 +167,58 @@ prob1 = do
   x <- normal 1 2
   uniformR (x, 2 * x)
 
+prob2 :: PrimMonad m => StateT Double (Prob m) Double
+prob2 = do
+  x <- lift $ normal 1 2
+  y <- get
+  return $ x + y
+
+
+-- prob3 :: PrimMonad m => LoggingT msg (StateT Double (Prob m)) Double
+-- prob3 = do
+--   x <- lift . lift $ normal 1 2
+--   y <- lift get
+--   logInfo ("moo" :: String)
+--   return $ x + y
+
+-- -- • Could not deduce (MonadLog
+-- --                       (WithSeverity String) (LoggingT msg (StateT Double (Prob m))))
+-- --     arising from a use of ‘logInfo’
+
+-- -- ok smartass ghc
+
+-- -- lemme see
+
+
+prob3 ::(S.MonadState Double (Prob m), PrimMonad m) => Prob m Double
+prob3 = do
+  x <- normal 1 2
+  y <- S.get
+  let z = x + y
+  S.put z
+  return z
+
+
+class RV a where
+  sampleRV :: Prob m a -> Gen (PrimState m) -> m a
+
+-- | `mtl` style
+prob4 :: (RV b, S.MonadState b m, Num b) =>
+         Prob m b
+      -> Gen (PrimState m)
+      -> m b
+prob4 p g = do
+  x <- sampleRV p g
+  y <- S.get
+  let z = x + y
+  S.put z
+  return z
+
+
+
+
+
+
 
 
 
