@@ -21,15 +21,15 @@ import System.Random.MWC.Probability
 
 
 
+-- | Reference : we want a monad capable of these effects:
+--
+-- * Reading configuration
+-- * Logging
+-- * Transforming state
+-- * Sampling random variables
 
 
 
--- -- | Reference : we want a monad capable of these effects:
--- --
--- -- * Reading configuration
--- -- * Logging
--- -- * Transforming state
--- -- * Sampling random variables
 -- -- adsf :: (MonadLog (WithSeverity )S.MonadState b m, R.MonadReader t m) =>
 -- --         (t -> Prob m a)
 -- --      -> Gen (PrimState m)
@@ -43,13 +43,30 @@ import System.Random.MWC.Probability
 --   return x
 
 newtype T msg s m a =
-  T { unT :: LoggingT msg (StateT s (Prob m)) a }
+  T { unT :: LoggingT (WithSeverity msg) (StateT s (Prob m)) a }
       deriving (Functor, Applicative, Monad)
 
 instance MonadTrans (T msg s) where
   lift = T . lift . lift . lift
 
 instance MonadLog msg m => MonadLog msg (T msg s m)
+
+runT :: Monad m =>
+        T msg s m a
+     -> (WithSeverity msg -> m ())
+     -> s
+     -> Prob m (a, s)
+runT (T m) lh x0 = runStateT (runLoggingT m lhLift) x0
+  where
+    lhLift msg = lift $ lift (lh msg)
+
+
+-- t :: (Monad m, Num s, PrimMonad (LoggingT (WithSeverity String) (StateT s (Prob m)))) => Gen (PrimState (LoggingT (WithSeverity String) (StateT s (Prob m)))) -> T String s m Double
+-- t gen = T $ do
+--   logInfo ("moo" :: String)
+--   S.modify (+ 1)
+--   sample (normal 1 2) gen
+
 
 --
 
@@ -67,13 +84,15 @@ t2 gen = T2 $ do
   w <- lift $ sample (normal 1 2) gen
   S.put x
 
+-- | mtl + MonadLog
+
 t3 :: (S.MonadState s m, MonadLog (WithSeverity String) m) => m ()
 t3 = do
   x <- S.get
   logInfo ("moo" :: String)
   S.put x
 
---
+-- | StateT / Prob
 
 newtype T4 s m a = T4 { unT4 :: StateT s (Prob m) a }
 
@@ -129,19 +148,24 @@ t6 mf stf logf gen = StateT $ \s -> do
 --   put x
   
 
--- 
+-- LoggingT / Prob
 
+newtype T7 msg m a = T7 {
+  unT7 :: LoggingT msg (Prob m) a }
+     deriving (Functor, Applicative, Monad)
 
-
--- newtype T msg m a = T {
---   unT :: LoggingT msg (Prob m) a }
---      deriving (Functor, Applicative, Monad)
-
--- mkT h = T $ LoggingT $ ReaderT h
+mkT7 h = LoggingT $ ReaderT h -- where h' msg = lift (h msg)
 
 -- -- asdf :: ((msg -> m ()) -> m a) -> LoggingT msg m a
 -- -- asdf h = LoggingT $ ReaderT $ do
   
+
+-- |
+
+prob1 :: PrimMonad m => Prob m Double
+prob1 = do
+  x <- normal 1 2
+  uniformR (x, 2 * x)
 
 
 
