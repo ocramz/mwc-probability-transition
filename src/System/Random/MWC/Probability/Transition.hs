@@ -52,11 +52,11 @@ instance MonadTrans (T msg s) where
 instance MonadLog msg m => MonadLog msg (T msg s m)
 
 runT :: Monad m =>
-        T msg s m a
-     -> (WithSeverity msg -> m ())
+        (WithSeverity msg -> m ())
+     -> T msg s m a
      -> s
      -> Prob m (a, s)
-runT (T m) lh x0 = runStateT (runLoggingT m lhLift) x0
+runT lh (T m) x0 = runStateT (runLoggingT m lhLift) x0
   where
     lhLift msg = lift $ lift (lh msg)
 
