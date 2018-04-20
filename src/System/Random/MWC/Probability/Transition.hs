@@ -23,7 +23,7 @@ import System.Random.MWC.Probability
 
 -- | Reference : we want a monad capable of these effects:
 --
--- * Reading configuration
+-- * Reading configuration (optional)
 -- * Logging
 -- * Transforming state
 -- * Sampling random variables
@@ -79,12 +79,16 @@ instance MonadTrans (T2 msg s) where
 
 instance MonadLog msg m => MonadLog msg (T2 msg s m)
 
+t2 :: (Monad m, PrimMonad (LoggingT msg (Prob m))) =>
+     Gen (PrimState (LoggingT msg (Prob m))) -> T2 msg s m ()
 t2 gen = T2 $ do
   x <- S.get
   w <- lift $ sample (normal 1 2) gen
   S.put x
 
--- | mtl + MonadLog
+
+
+-- | mtl : MonadState + MonadLog
 
 t3 :: (S.MonadState s m, MonadLog (WithSeverity String) m) => m ()
 t3 = do
@@ -92,7 +96,9 @@ t3 = do
   logInfo ("moo" :: String)
   S.put x
 
--- | StateT / Prob
+  
+
+-- | mtl : StateT / Prob + MonadProb typeclass
 
 newtype T4 s m a = T4 { unT4 :: StateT s (Prob m) a }
 
@@ -100,6 +106,8 @@ class MonadProb m a where
   mpSample :: Prob m a -> Gen (PrimState m) -> m a
   mpSample = sample  
 
+t4 :: (S.MonadState b m, MonadProb m a, MonadLog (WithSeverity String) m) =>
+     Prob m a -> Gen (PrimState m) -> m b
 t4 pf gen = do
   x <- S.get
   w <- mpSample pf gen
@@ -136,6 +144,72 @@ t6 mf stf logf gen = StateT $ \s -> do
       le@(WithSeverity _ _) = logf s'
   logMessage le
   return (w, s')
+
+
+-- | Same thing as t6, only using mtl MonadState rather than transformers StateT
+--
+-- NB: IO does not have a MonadLog (..) instance
+t6' :: (S.MonadState b m, MonadLog (WithSeverity a) m) =>
+     (b -> Prob m t)
+     -> (t -> b -> b)
+     -> (b -> WithSeverity a)
+     -> Gen (PrimState m)
+     -> m b
+t6' mf stf logf gen = do
+  s <- S.get
+  w <- sample (mf s) gen
+  let s' = stf w s
+      le@(WithSeverity _ _) = logf s'
+  logMessage le
+  S.put s'
+  return s'
+
+
+{- |
+ NB :
+  MonadIO m => MonadIO (LoggingT message m)
+  MonadIO m => MonadIO (StateT s m)
+-}
+
+newtype L msg s m a = L (StateT s (LoggingT msg m) a) deriving (Functor, Applicative, Monad, MonadIO)
+
+runL :: Handler m message -> L message s m a -> s -> m (a, s)
+runL msgHdl (L ms) x0 = runLoggingT (runStateT ms x0) msgHdl
+
+
+lTest :: MonadIO m => L String Int m Int
+lTest = L $ do
+  s <- get
+  logMessage "moo"
+  liftIO $ putStrLn "hi from IO"
+  put s
+  return s
+
+
+
+-- newtype M msg s m a = M (StateT s (LoggingT msg (Prob m)) a) deriving (Functor, Applicative, Monad)
+
+-- runM h (M mm) s0 = sample (runLoggingT (runStateT mm s0) h)
+
+newtype N msg s m a = N (StateT s (Prob (LoggingT msg m)) a) deriving (Functor, Applicative, Monad)
+
+runN :: Handler m message
+     -> N message s m a
+     -> s
+     -> Gen (PrimState (LoggingT message m))
+     -> m (a, s)
+runN h (N mm) s0 gen = runLoggingT (sample (runStateT mm s0) gen) h 
+
+-- nTest :: Monad m => N String Int m Int
+-- nTest = N $ do
+--   s <- get
+--   logMessage "moo"
+--   put s
+--   return s
+
+  
+
+
 
 
 -- newtype T6 s m a = T6 { unT6 :: Gen (PrimState m) -> StateT s m a } deriving (Functor, Monad)

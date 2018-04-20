@@ -26,6 +26,7 @@ library
                      , mwc-probability
                      , primitive
                      , transformers
+                     , wl-pprint-text
 
 
 
