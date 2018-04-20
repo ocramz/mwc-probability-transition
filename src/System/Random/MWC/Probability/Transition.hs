@@ -12,7 +12,7 @@ import qualified Control.Monad.Reader as R
 import qualified Control.Monad.State as S
 
 import Control.Monad.Trans.Class (MonadTrans(..), lift)
-import Control.Monad.Trans.State.Strict (StateT(..), get, put, evalStateT)
+import Control.Monad.Trans.State.Strict (StateT(..), get, put, evalStateT, execStateT, runStateT)
 import Control.Monad.Trans.Reader (ReaderT(..), ask, asks)
 import Control.Monad.IO.Class (MonadIO(..), liftIO)
 import Control.Monad.Primitive
@@ -57,6 +57,93 @@ runT :: Monad m =>
      -> Int
      -> m [a]
 runT h mm s0 n = runLoggingT (replicateM n $ evalStateT mm s0) h 
+
+
+
+-- | This works
+--
+-- > :t create >>= \g -> runLoggingT (mtl3 g) print
+-- > :: IO Double
+mtl3 :: (MonadTrans t, PrimMonad m, MonadLog (WithSeverity String) (t m)) =>
+        Gen (PrimState m)
+     -> t m Double
+mtl3 gen = do
+  w <- lift $ sample (normal 1 2) gen
+  logInfo $ show w
+  return w
+
+
+
+mtl4 :: (S.MonadState s m, MonadLog (WithSeverity a) (t m), MonadTrans t) =>
+        (s -> Prob m p)
+     -> (s -> p -> m (a, s))
+     -> (a -> s -> a)
+     -> Gen (PrimState m)
+     -> t m a
+mtl4 fm fs flog gen = do
+  s <- lift S.get
+  w <- lift $ sample (fm s) gen
+  (a, s') <- lift $ fs s w
+  logInfo $ flog a s' 
+  lift $ S.put s'
+  return a
+
+testMtl4
+  :: (PrimMonad m, Num a) =>
+     Handler (StateT a m) (WithSeverity a) -> a -> m (a, a)
+testMtl4 logf s0 = flip runStateT s0 $ do
+  g <- lift create
+  runLoggingT (mtl4 (const $ normal 1 2) (\_ _ -> pure (1, 2)) (+) g) logf
+
+-- | Usage :
+--
+-- > runMtl4 (const $ normal 1 2) (\ _ _ -> pure (1, 2)) print (+) 0 create
+runMtl4
+  :: Monad m =>
+     (s -> Prob (StateT s m) p)
+     -> (s -> p -> StateT s m (a, s))
+     -> (WithSeverity a -> m ())
+     -> (a -> s -> a)
+     -> s
+     -> m (Gen (PrimState m))
+     -> m (a, s)
+runMtl4 model fstate logf ff s0 gen = flip runStateT s0 $ do
+  g <- lift gen
+  runLoggingT (mtl4 model fstate ff g) (lift . logf)
+  
+
+
+
+-- 
+
+-- runMtl2 h = flip runLoggingT h $ do 
+--   g <- create
+--   sample mtl2 g
+
+-- mtl2 :: (MonadLog (WithSeverity String) m, PrimMonad m) => Prob m Double
+-- mtl2 = do
+--   w <- normal 1 2
+--   lift $ logInfo $ show w
+--   return w
+
+-- 
+
+
+mtl1 :: (S.MonadState Double (t (Prob m)), MonadTrans t, PrimMonad m) => t (Prob m) ()
+mtl1 = do
+  s <- S.get
+  w <- lift $ normal 1 2
+  S.put (s + w)
+
+--
+mtl0 :: (S.MonadState Int m, MonadIO m) => m ()
+mtl0 = do
+  s <- S.get
+  liftIO $ print "moo"
+  S.put (s + 42)
+--
+
+
 
 
 
