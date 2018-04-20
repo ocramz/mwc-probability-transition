@@ -158,10 +158,10 @@ runT5 logf (T5 mm) = runStateT (runLoggingT mm (lift . logf) )
 
 
   
--- | T6
+-- | T6, likely the final version of the interface before release
 
 newtype T6 msg s m a = T6 {
-  sampleT6 :: Gen (PrimState m) -> LoggingT msg (StateT s m) a }
+  sampleT6 :: Gen (PrimState m) -> LoggingT msg (StateT s m) a } deriving (Functor)
 
 mtl6 :: Monad m =>
         (s -> Prob m t)
