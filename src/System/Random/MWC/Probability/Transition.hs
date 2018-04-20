@@ -81,6 +81,38 @@ t0 = T $ do
 --   sample (normal 1 2) gen
 
 
+
+t1 :: (Show s, MonadLog (WithSeverity String) m) => StateT s m ()
+t1 = do
+  s <- get 
+  logInfo $ show s
+  put s
+
+runT1 :: Monad m =>
+         Handler m message
+      -> StateT s (LoggingT message m) a
+      -> s
+      -> m a
+runT1 h mm s0 = runLoggingT (evalStateT mm s0) h
+
+t12 :: (MonadLog (WithSeverity String) m, PrimMonad m) => Prob m Double
+t12 = do
+  z <- normal 1 2
+  lift $ logInfo (show z)
+  return z
+
+-- t12' :: Monad m => LoggingT msg (Prob m) Double
+t12' :: (PrimMonad m, MonadLog (WithSeverity String) (Prob m)) => Prob m Double 
+t12' = do
+  z <- normal 1 2
+  logInfo (show z)
+  return z
+
+
+
+
+
+
 --
 
 newtype T2 msg s m a =
