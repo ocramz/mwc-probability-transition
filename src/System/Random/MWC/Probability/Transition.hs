@@ -7,10 +7,10 @@ module System.Random.MWC.Probability.Transition (
   , runTransition
   -- ** Helper functions
   , withSeverity
-  -- -- * Re-exported
-  -- -- ** `logging-effect`
-  -- , Handler
-  -- , WithSeverity(..), Severity(..)
+  -- * Re-exported
+  -- ** `logging-effect`
+  , Handler
+  , WithSeverity(..), Severity(..)
   -- , withFDHandler, defaultBatchingOptions
   ) where
 
