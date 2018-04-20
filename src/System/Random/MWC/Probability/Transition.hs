@@ -2,6 +2,7 @@
 {-# language DeriveFunctor, GeneralizedNewtypeDeriving #-}
 {-# language FlexibleInstances, MultiParamTypeClasses #-}
 {-# language TypeFamilies #-}
+{-# language UndecidableInstances #-}
 module System.Random.MWC.Probability.Transition where
 
 import Control.Monad
@@ -51,15 +52,27 @@ instance MonadTrans (T msg s) where
 
 instance MonadLog msg m => MonadLog msg (T msg s m)
 
+
+
 runT :: Monad m =>
         (WithSeverity msg -> m ())
      -> T msg s m a
      -> s
-     -> Prob m (a, s)
-runT lh (T m) x0 = runStateT (runLoggingT m lhLift) x0
+     -> Gen (PrimState m)
+     -> m (a, s)
+runT lh (T mm) x0 gen = sample (runStateT (runLoggingT mm lh') x0) gen
   where
-    lhLift msg = lift $ lift (lh msg)
+    lh' x = lift $ lift (lh x)
 
+
+t0 :: (MonadLog String m, PrimMonad m) => T String Double m Double
+t0 = T $ do
+  s <- lift get
+  w <- lift . lift $ normal 1 2
+  let z = s + w
+  lift . lift . lift $ logMessage (show z)
+  lift $ put z
+  return z
 
 -- t :: (Monad m, Num s, PrimMonad (LoggingT (WithSeverity String) (StateT s (Prob m)))) => Gen (PrimState (LoggingT (WithSeverity String) (StateT s (Prob m)))) -> T String s m Double
 -- t gen = T $ do
@@ -207,7 +220,89 @@ runN h (N mm) s0 gen = runLoggingT (sample (runStateT mm s0) gen) h
 --   put s
 --   return s
 
-  
+
+newtype M msg s m a = M {
+  unM :: LoggingT msg (StateT s m) a } deriving (Functor, Applicative, Monad)
+
+mTest :: Monad m => (Int -> Prob m a2) -> Gen (PrimState m) -> M String Int m Int
+mTest fs gen = M $ do
+  s <- lift get
+  logMessage "moo"
+  w <- lift . lift $ sample (fs s) gen
+  lift $ put s
+  return s
+
+
+
+m1 :: MonadLog message m =>     
+      (s -> Prob m p)
+   -> (s -> p -> (a, s))
+   -> (s -> a -> message)
+   -> Gen (PrimState m)
+   -> M message s m a
+m1 fs f flog gen = M $ do
+  s <- lift get
+  w <- lift . lift $ sample (fs s) gen
+  let (a, s') = f s w
+  logMessage (flog s' a)
+  lift $ put s'
+  return a
+
+runM :: Monad m => Handler m message -> M message s m a -> s -> m (a, s)
+runM h (M mm) s0 = runStateT (runLoggingT mm hLift) s0 where
+  hLift x = lift (h x)
+
+-- NOTE :
+-- 
+-- λ> :t \pf gen -> runM pf (m1 (\_ -> normal 1 2) (\ s p -> (s, p)) (\_ _ -> "moo") gen)
+-- \pf gen -> runM pf (m1 (\_ -> normal 1 2) (\ s p -> (s, p)) (\_ _ -> "moo") gen)
+--   :: (PrimMonad m, MonadLog [Char] m) =>
+--      Handler m [Char]
+--      -> Gen (PrimState m) -> Double -> m (Double, Double)
+
+m2 :: (S.MonadState s m, MonadLog message m) =>
+      (b -> s -> message)
+   -> (s -> Prob m t)
+   -> (s -> t -> (b, s))
+   -> Gen (PrimState m)
+   -> m b
+m2 flog fs f gen = do
+  s <- S.get
+  w <- sample (fs s) gen
+  let (a, s') = f s w
+  logMessage (flog a s')
+  S.put s'
+  return a
+
+
+
+
+newtype SP s m a = SP {unSP :: StateT s (Prob m) a} deriving (Functor, Applicative, Monad)
+
+instance MonadTrans (SP s) where
+  lift = lift
+
+instance MonadLog msg m => MonadLog msg (SP s m)
+
+
+runSP :: SP s m a -> s -> Gen (PrimState m) -> m (a, s)
+runSP (SP ff) s0 gen = sample (runStateT ff s0) gen
+
+-- runSP' h sp s0 gen = runLoggingT (runSP sp s0 gen) h' where
+--   h' x = lift (h x)
+--   -- hLift x = lift (h x)
+
+sp0 :: (MonadLog String m, Num a, Show a) => (a -> Prob m a) -> SP a m a
+sp0 fs = SP $ do
+  s <- get
+  w <- lift $ fs s
+  let z = w + s
+  lift . lift $ logMessage (show z)
+  put z
+  return z
+
+
+
 
 
 
