@@ -7,6 +7,11 @@ module System.Random.MWC.Probability.Transition (
   , runTransition
   -- ** Helper functions
   , withSeverity
+  -- -- * Re-exported
+  -- -- ** `logging-effect`
+  -- , Handler
+  -- , WithSeverity(..), Severity(..)
+  -- , withFDHandler, defaultBatchingOptions
   ) where
 
 import Control.Monad
@@ -15,8 +20,8 @@ import Control.Monad.Primitive
 import qualified Control.Monad.State as S
 
 import Control.Monad.Trans.Class (MonadTrans(..), lift)
-import Control.Monad.Trans.State.Strict (StateT(..), get, put, evalStateT, execStateT, runStateT)
-import Control.Monad.Log (MonadLog(..), Handler, WithSeverity(..), Severity(..), LoggingT(..), runLoggingT, renderWithSeverity, withFDHandler, defaultBatchingOptions, logMessage, logDebug, logInfo, logNotice, logWarning, logError)
+import Control.Monad.Trans.State.Strict (StateT(..), evalStateT, execStateT, runStateT)
+import Control.Monad.Log (MonadLog(..), Handler, WithSeverity(..), Severity(..), LoggingT(..), runLoggingT, withFDHandler, defaultBatchingOptions, logMessage)
 
 import Data.Char
 
@@ -30,9 +35,17 @@ newtype Transition message s m a = Transition (
   ) deriving (Functor)
 
 -- | Construct a 'Transition' from sampling, state transformation and logging functions.
+--
+-- NB: The three function arguments are used in the order in which they appear here:
+--
+-- 1. a random sample @w :: t@ is produced, using the current state @x :: s@ as input
+--
+-- 2. output @z :: a@ and next state @x' :: s@ are computed using @w@ and @x@
+--
+-- 3. a logging message is constructed, using @z@ and @x'@ as arguments.
 mkTransition :: Monad m =>
         (s -> Prob m t)     -- ^ Random generation
-     -> (s -> t -> (a, s))  -- ^ State transformation
+     -> (s -> t -> (a, s))  -- ^ (Output, Next state)
      -> (a -> s -> message) -- ^ Log message generation
      -> Transition message s m a
 mkTransition fm fs flog = Transition $ \gen -> do
