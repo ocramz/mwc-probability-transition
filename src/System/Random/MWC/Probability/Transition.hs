@@ -199,21 +199,46 @@ prob3 = do
   return z
 
 
-class RV a where
-  sampleRV :: Prob m a -> Gen (PrimState m) -> m a
+--
 
--- | `mtl` style
-prob4 :: (RV b, S.MonadState b m, Num b) =>
-         Prob m b
-      -> Gen (PrimState m)
-      -> m b
-prob4 p g = do
-  x <- sampleRV p g
-  y <- S.get
-  let z = x + y
-  S.put z
-  return z
+data P a = Normal a a | Uniform a a | Zipf a -- .. etc.
 
+-- | Left contains the integer-valued samples, Right the Double-valued ones
+interpP :: (PrimMonad m, Integral a) => P Double -> Prob m (Either a Double)
+interpP rv = case rv of
+  Normal mu sig -> Right <$> normal mu sig
+  Uniform a b -> Right <$> uniformR (a, b)
+  Zipf a -> Left <$> zipf a
+
+class RV p a where
+  sampleRV :: p -> Prob m a
+  -- sampleRV = interpP
+
+instance RV (P a) b where
+  -- sampleRV = interpP
+  
+
+-- class RV a where
+--   sampleRV :: Prob m a -> Gen (PrimState m) -> m a
+
+-- -- | `mtl` style
+-- prob4 :: (RV b, S.MonadState b m, Num b) =>
+--          Prob m b
+--       -> Gen (PrimState m)
+--       -> m b
+-- prob4 p g = do
+--   x <- sampleRV p g
+--   y <- S.get
+--   let z = x + y
+--   S.put z
+--   return z
+
+
+
+
+para :: (t -> ([t], b) -> b) -> b -> [t] -> b
+para f b (a:as) = f a (as, para f b as)
+para _ b []     = b
 
 
 
