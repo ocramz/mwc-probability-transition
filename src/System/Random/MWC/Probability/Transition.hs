@@ -18,6 +18,8 @@ import Control.Monad.IO.Class (MonadIO(..), liftIO)
 import Control.Monad.Primitive
 import Control.Monad.Log (MonadLog(..), Handler, WithSeverity(..), Severity(..), LoggingT(..), runLoggingT, renderWithSeverity, withFDHandler, defaultBatchingOptions, logMessage, logDebug, logInfo, logNotice, logWarning, logError)
 
+import Text.PrettyPrint.Leijen.Text.Doc
+
 import System.Random.MWC.Probability
 
 
@@ -158,17 +160,17 @@ runT5 logf (T5 mm) = runStateT (runLoggingT mm (lift . logf) )
 
 
   
--- | T6, likely the final version of the interface before release
+-- | T6
 
 newtype T6 msg s m a = T6 {
   sampleT6 :: Gen (PrimState m) -> LoggingT msg (StateT s m) a } deriving (Functor)
 
-mtl6 :: Monad m =>
+mkT6 :: Monad m =>
         (s -> Prob m t)
      -> (s -> t -> (a, s))
      -> (a -> s -> message)
      -> T6 message s m a
-mtl6 fm fs flog = T6 $ \gen -> do
+mkT6 fm fs flog = T6 $ \gen -> do
   s <- lift S.get
   w <- lift . lift $ sample (fm s) gen
   let (a, s') = fs s w
@@ -186,6 +188,36 @@ runT6 logf (T6 fm) s0 g = runStateT (runLoggingT (fm g) (lift . logf)) s0
 
 
 
+
+-- | T7
+
+newtype T7 msg s m a = T7 {
+  sampleT7 :: Gen (PrimState m) -> StateT s (LoggingT msg m) a } deriving (Functor)
+
+mkT7 :: Monad m =>
+        (s -> Prob m t)
+     -> (s -> t -> (a, s))
+     -> (a -> s -> message)
+     -> T7 message s m a
+mkT7 fm fs flog = T7 $ \gen -> do
+  s <- S.get
+  w <- lift . lift $ sample (fm s) gen
+  let (a, s') = fs s w
+  lift $ logMessage $ flog a s' 
+  S.put s'
+  return a
+
+runT7 :: Monad m =>
+         Handler m message
+      -> T7 message s m a
+      -> Int
+      -> s
+      -> Gen (PrimState m)
+      -> m [(a, s)]
+runT7 logf (T7 fm) n s0 g =
+  runLoggingT (replicateM n (runStateT (fm g) s0)) logf
+
+  
 
 
 
