@@ -74,6 +74,10 @@ mtl3 gen = do
 
 
 
+--
+
+
+
 mtl4 :: (S.MonadState s m, MonadLog (WithSeverity a) (t m), MonadTrans t) =>
         (s -> Prob m p)
      -> (s -> p -> m (a, s))
@@ -88,60 +92,100 @@ mtl4 fm fs flog gen = do
   lift $ S.put s'
   return a
 
-testMtl4
-  :: (PrimMonad m, Num a) =>
-     Handler (StateT a m) (WithSeverity a) -> a -> m (a, a)
-testMtl4 logf s0 = flip runStateT s0 $ do
-  g <- lift create
-  runLoggingT (mtl4 (const $ normal 1 2) (\_ _ -> pure (1, 2)) (+) g) logf
+data T4 s p m a = T4 {
+    t4model :: s -> Prob m p
+  , t4StateFunc :: a -> p -> m (a, s)
+  , t4logHdlr :: Handler m (WithSeverity a)
+  , t4Funct :: a -> s -> a
+  }
+
+-- runT4 (T4 mm sf f) g 
+
+
+-- runMtl41 :: Monad m =>
+--             (s -> Prob (StateT s m) p)
+--          -> (s -> p -> StateT s m (a, s))
+--          -> Handler m (WithSeverity a)
+--          -> (a -> s -> a)
+--          -> s
+--          -> Gen (PrimState m)
+--          -> m (a, s)
+runMtl41 model fstate logf ff s0 gen =
+  runStateT (runLoggingT (mtl4 model fstate ff gen) (lift . logf) ) s0
+
 
 -- | Usage :
 --
 -- > runMtl4 (const $ normal 1 2) (\ _ _ -> pure (1, 2)) print (+) 0 create
-runMtl4
-  :: Monad m =>
-     (s -> Prob (StateT s m) p)
-     -> (s -> p -> StateT s m (a, s))
-     -> (WithSeverity a -> m ())
-     -> (a -> s -> a)
-     -> s
-     -> m (Gen (PrimState m))
-     -> m (a, s)
+runMtl4 :: Monad m =>
+           (s -> Prob (StateT s m) p)
+        -> (s -> p -> StateT s m (a, s))
+        -> (WithSeverity a -> m ())
+        -> (a -> s -> a)
+        -> s
+        -> m (Gen (PrimState m))
+        -> m (a, s)
 runMtl4 model fstate logf ff s0 gen = flip runStateT s0 $ do
   g <- lift gen
   runLoggingT (mtl4 model fstate ff g) (lift . logf)
   
 
 
+-- | T5 
 
--- 
+newtype T5 msg s m a = T5 (LoggingT msg (StateT s m) a)
 
--- runMtl2 h = flip runLoggingT h $ do 
---   g <- create
---   sample mtl2 g
+mtl5 :: Monad m =>
+        (s -> Prob m t)
+     -> (s -> t -> (a, s))
+     -> (a -> s -> message)
+     -> Gen (PrimState m)
+     -> T5 message s m a
+mtl5 fm fs flog gen = T5 $ do
+  s <- lift S.get
+  w <- lift . lift $ sample (fm s) gen
+  let (a, s') = fs s w
+  logMessage $ flog a s' 
+  lift $ S.put s'
+  return a
 
--- mtl2 :: (MonadLog (WithSeverity String) m, PrimMonad m) => Prob m Double
--- mtl2 = do
---   w <- normal 1 2
---   lift $ logInfo $ show w
---   return w
+runT5 :: Monad m =>
+         Handler m msg
+      -> T5 msg s m a2
+      -> s
+      -> m (a2, s)
+runT5 logf (T5 mm) = runStateT (runLoggingT mm (lift . logf) )
 
--- 
+
+  
+-- | T6
+
+newtype T6 msg s m a = T6 {
+  sampleT6 :: Gen (PrimState m) -> LoggingT msg (StateT s m) a }
+
+mtl6 :: Monad m =>
+        (s -> Prob m t)
+     -> (s -> t -> (a, s))
+     -> (a -> s -> message)
+     -> T6 message s m a
+mtl6 fm fs flog = T6 $ \gen -> do
+  s <- lift S.get
+  w <- lift . lift $ sample (fm s) gen
+  let (a, s') = fs s w
+  logMessage $ flog a s' 
+  lift $ S.put s'
+  return a
+
+runT6 :: Monad m =>
+         Handler m msg
+      -> T6 msg s m a
+      -> s
+      -> Gen (PrimState m)
+      -> m (a, s)
+runT6 logf (T6 fm) s0 g = runStateT (runLoggingT (fm g) (lift . logf)) s0
 
 
-mtl1 :: (S.MonadState Double (t (Prob m)), MonadTrans t, PrimMonad m) => t (Prob m) ()
-mtl1 = do
-  s <- S.get
-  w <- lift $ normal 1 2
-  S.put (s + w)
 
---
-mtl0 :: (S.MonadState Int m, MonadIO m) => m ()
-mtl0 = do
-  s <- S.get
-  liftIO $ print "moo"
-  S.put (s + 42)
---
 
 
 
