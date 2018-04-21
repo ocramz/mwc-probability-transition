@@ -8,10 +8,10 @@ module System.Random.MWC.Probability.Transition (
   , runTransition
   -- ** Helper functions
   , withSeverity
-  -- * Re-exported from `logging-effect`
-  , Handler
-  , WithSeverity(..), Severity(..)
-  -- , withFDHandler, defaultBatchingOptions
+  -- -- * Re-exported from `logging-effect`
+  -- , Handler
+  -- , WithSeverity(..), Severity(..)
+  -- -- , withFDHandler, defaultBatchingOptions
   ) where
 
 import Control.Monad
@@ -69,28 +69,6 @@ runTransition :: Monad m =>
       -> m ([a], s)               -- ^ (Outputs, Final state)
 runTransition logf (Transition fm) n s0 g =
   runLoggingT (runStateT (replicateM n (fm g)) s0) logf
-
-
-
-
- 
-
--- -- test data
-
-
-
-
-
--- baz :: S.MonadState Int m => m Int
--- baz = do
---   s <- S.get
---   let z = s + 1
---   S.put z
---   return z
-
--- runBaz :: IO ([Int], Int)
--- runBaz = runStateT (replicateM 5 baz) 0  
-  
 
 
 
