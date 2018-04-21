@@ -45,7 +45,7 @@ newtype Transition message s m a = Transition (
 mkTransition :: Monad m =>
         (s -> Prob m t)     -- ^ Random generation
      -> (s -> t -> (a, s))  -- ^ (Output, Next state)
-     -> (a -> s -> message) -- ^ Log message generation
+     -> (a -> s -> message) -- ^ Log message construction
      -> Transition message s m a
 mkTransition fm fs flog = Transition $ \gen -> do
   s <- S.get
