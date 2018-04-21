@@ -66,38 +66,30 @@ runTransition :: Monad m =>
       -> Int                      -- ^ Number of iterations 
       -> s                        -- ^ Initial state
       -> Gen (PrimState m)        -- ^ PRNG
-      -> m [(a, s)]
+      -> m ([a], s)               -- ^ (Outputs, Final state)
 runTransition logf (Transition fm) n s0 g =
-  runLoggingT (replicateM n (runStateT (fm g) s0)) logf
+  runLoggingT (runStateT (replicateM n (fm g)) s0) logf
 
 
-runTransition' logf (Transition fm) n s0 g =
-  replicateM n (runLoggingT (runStateT (fm g) s0) logf)
+
 
  
 
--- test data
-
-t01 :: Monad m => Transition (WithSeverity String) Double m Double
-t01 = mkTransition modelf statef logf where
-  modelf _ = pure (1 :: Double)
-  statef s t = (s + 1, t)
-  logf _ s = WithSeverity Informational (show s)
-
-runT01 :: IO [(Double, Double)]
-runT01 = create >>= runTransition' (putStrLn . withSeverity id) t01 5 0
+-- -- test data
 
 
 
-baz :: S.MonadState Int m => m Int
-baz = do
-  s <- S.get
-  let z = s + 1
-  S.put z
-  return z
 
-runBaz :: IO ([Int], Int)
-runBaz = runStateT (replicateM 5 baz) 0  
+
+-- baz :: S.MonadState Int m => m Int
+-- baz = do
+--   s <- S.get
+--   let z = s + 1
+--   S.put z
+--   return z
+
+-- runBaz :: IO ([Int], Int)
+-- runBaz = runStateT (replicateM 5 baz) 0  
   
 
 
