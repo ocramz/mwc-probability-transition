@@ -13,10 +13,6 @@ module System.Random.MWC.Probability.Transition (
   , stepConditional
   -- * Helper functions
   , withSeverity
-  -- -- * Re-exported from `logging-effect`
-  -- , Handler
-  -- , WithSeverity(..), Severity(..)
-  -- -- , withFDHandler, defaultBatchingOptions
   ) where
 
 import Control.Monad
@@ -26,7 +22,6 @@ import qualified Control.Monad.State as S
 
 import Control.Monad.Trans.Class (MonadTrans(..), lift)
 import Control.Monad.Trans.State.Strict (StateT(..), evalStateT, execStateT, runStateT)
--- import Control.Monad.Log (MonadLog(..), Handler, WithSeverity(..), Severity(..), LoggingT(..), runLoggingT, withFDHandler, defaultBatchingOptions, logMessage)
 
 import qualified Control.Monad.Log as L
 import Data.Char
