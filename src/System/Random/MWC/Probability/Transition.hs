@@ -21,7 +21,7 @@ import Control.Monad.Primitive
 import qualified Control.Monad.State as S
 
 import Control.Monad.Trans.Class (MonadTrans(..), lift)
-import Control.Monad.Trans.State.Strict (StateT(..), evalStateT, execStateT, runStateT)
+import Control.Monad.Trans.State.Strict (StateT(..), runStateT)
 
 import qualified Control.Monad.Log as L
 import Data.Char
@@ -84,8 +84,8 @@ evalTransition :: Monad m =>
                -> s
                -> Gen (PrimState m)
                -> m [a]              -- ^ Outputs
-evalTransition logf (Transition fm) n s0 g =
-  L.runLoggingT (evalStateT (replicateM n (fm g)) s0) logf
+evalTransition logf tfm n s0 g = fst <$> runTransition logf tfm n s0 g
+  
 
 -- | Run a 'Transition' for a number of steps, while logging each iteration.
 --
@@ -97,8 +97,7 @@ execTransition :: Monad m =>
                -> s
                -> Gen (PrimState m)
                -> m s              -- ^ Final state
-execTransition logf (Transition fm) n s0 g =
-  L.runLoggingT (execStateT (replicateM n (fm g)) s0) logf
+execTransition logf tfm n s0 g = snd <$> runTransition logf tfm n s0 g
 
 
 -- | Perform one 'Transition' and check output and updated state against the current state, producing an Either with the result of the comparison.
