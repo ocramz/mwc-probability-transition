@@ -1,7 +1,11 @@
 name:                mwc-probability-transition
 version:             0.1.0.0
--- synopsis:
--- description:
+synopsis:            A Markov stochastic transition operator with logging
+description:
+            .
+            This package provides a 'Transition' type that is useful for modelling (and debugging) stochastic transition kernels (used in e.g. the integration of SDEs, Markov chain Monte Carlo algorithms etc.).
+            .
+            It wraps the compositional random sampling functionality of `mwc-probability` and offers structured logging via `logging-effect`.
 homepage:            https://github.com/ocramz/mwc-probability-transition
 license:             BSD3
 license-file:        LICENSE
