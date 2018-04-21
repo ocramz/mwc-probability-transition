@@ -6,6 +6,7 @@ module System.Random.MWC.Probability.Transition (
     Transition
   , mkTransition
   , runTransition
+  , stepConditional
   -- ** Helper functions
   , withSeverity
   -- -- * Re-exported from `logging-effect`
@@ -69,6 +70,23 @@ runTransition :: Monad m =>
       -> m ([a], s)               -- ^ (Outputs, Final state)
 runTransition logf (Transition fm) n s0 g =
   runLoggingT (runStateT (replicateM n (fm g)) s0) logf
+
+
+-- | Perform one 'Transition' and check output and updated state against the current state, producing an Either with the result of the comparison.
+--
+-- Can be useful for detecting early divergence or lack of convergence etc.
+stepConditional :: Monad m =>
+                   (a -> s -> s -> Bool)  -- ^ Inputs: Model output, Current state, New state
+                -> (a -> s -> s -> l)     -- ^ "
+                -> (a -> s -> s -> r)     -- ^ "
+                -> Handler m message      
+                -> Transition message s m a
+                -> s                      -- ^ Current state
+                -> Gen (PrimState m)
+                -> m (Either l r)
+stepConditional q fleft fright logf (Transition fm) s g = do 
+  (a, s') <- runLoggingT (runStateT (fm g) s) logf
+  if q a s s' then pure (Left $ fleft a s s') else pure (Right $ fright a s s')
 
 
 
