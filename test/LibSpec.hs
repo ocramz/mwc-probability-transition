@@ -3,6 +3,8 @@ module Main where
 import Test.Hspec
 import Test.Hspec.QuickCheck
 
+import Control.Monad.Log
+
 import System.Random.MWC.Probability
 import System.Random.MWC.Probability.Transition
 

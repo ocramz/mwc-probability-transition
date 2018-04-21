@@ -1,5 +1,5 @@
 name:                mwc-probability-transition
-version:             0.3.0.0
+version:             0.3.0.2
 synopsis:            A Markov stochastic transition operator with logging
 description:
             .
@@ -12,7 +12,7 @@ license-file:        LICENSE
 author:              Marco Zocca
 maintainer:          zocca.marco gmail
 copyright:           2018 Marco Zocca
-category:            Numeric
+category:            Numeric, Random, Science, Scientific Simulation, Statistical Modeling, Statistics
 build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >=1.10
@@ -38,6 +38,7 @@ test-suite spec
   hs-source-dirs:      test
   main-is:             LibSpec.hs
   build-depends:       base
+                     , logging-effect
                      , mwc-probability
                      , mwc-probability-transition
                      , hspec
