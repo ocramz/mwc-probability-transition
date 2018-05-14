@@ -14,10 +14,11 @@ module System.Random.MWC.Probability.Transition (
   -- * Helper functions
   , withSeverity
   -- * Re-exported from @logging-effect@
-  -- ** Severity
+  -- ** Log message severity
   , L.WithSeverity(..), L.Severity(..)
+  -- ** Handlers
   , L.Handler, L.withFDHandler
-    -- **
+    -- ** Batched logging
   , L.BatchingOptions(..), L.defaultBatchingOptions, L.withBatchedHandler
   -- * Re-exported from @GHC.IO.Handle.FD@
   , stdout, stderr
