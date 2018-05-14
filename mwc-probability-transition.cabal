@@ -1,5 +1,5 @@
 name:                mwc-probability-transition
-version:             0.3.0.3
+version:             0.3.0.4
 synopsis:            A Markov stochastic transition operator with logging
 description:
             .
@@ -24,6 +24,7 @@ library
   hs-source-dirs:      src
   exposed-modules:     System.Random.MWC.Probability.Transition
   build-depends:       base >= 4.7 && < 5
+                     , exceptions
                      , ghc-prim
                      , logging-effect
                      , mtl

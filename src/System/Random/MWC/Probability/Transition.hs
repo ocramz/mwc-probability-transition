@@ -13,13 +13,24 @@ module System.Random.MWC.Probability.Transition (
   , stepConditional
   -- * Helper functions
   , withSeverity
+  -- * Re-exported from @logging-effect@
+  -- ** Severity
+  , L.WithSeverity(..), L.Severity(..)
+  , L.Handler, L.withFDHandler
+    -- **
+  , L.BatchingOptions(..), L.defaultBatchingOptions, L.withBatchedHandler
+  -- * Re-exported from @GHC.IO.Handle.FD@
+  , stdout, stderr
   ) where
 
 import Control.Monad
 import Control.Monad.Primitive
 
-import qualified Control.Monad.State as S
+-- import Control.Monad.Catch (MonadMask(..))
+import GHC.IO.Handle (Handle(..))
+import GHC.IO.Handle.FD (stdout, stderr)
 
+import qualified Control.Monad.State as S
 import Control.Monad.Trans.Class (MonadTrans(..), lift)
 import Control.Monad.Trans.State.Strict (StateT(..), runStateT)
 
