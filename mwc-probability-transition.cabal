@@ -31,6 +31,9 @@ library
                      , mwc-probability
                      , primitive
                      , transformers
+                     -- * DEBUG
+                     , hspec
+                     , QuickCheck                    
 
 test-suite spec
   default-language:    Haskell2010

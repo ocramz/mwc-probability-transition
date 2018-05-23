@@ -29,6 +29,6 @@ t01 :: Monad m => Transition (WithSeverity String) Double m Double
 t01 = mkTransition modelf statef logf where
   modelf _ = pure (1 :: Double)
   statef s t = (t, s + 1)
-  logf _ s = WithSeverity Informational (show s)
+  logf s _ _ = WithSeverity Informational (show s)
 
 
