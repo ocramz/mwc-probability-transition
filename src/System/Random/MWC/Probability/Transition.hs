@@ -60,15 +60,15 @@ instance Show (Transition msg s m a) where
 --
 -- 3. a logging message is constructed, using @z@ and @x'@ as arguments.
 mkTransition :: Monad m =>
-        (s -> Prob m t)     -- ^ Random generation
+        (s -> Prob m t)     -- ^ Generation of random data
      -> (s -> t -> (a, s))  -- ^ (Output, Next state)
-     -> (a -> s -> message) -- ^ Log message construction
+     -> (s -> t -> a -> message) -- ^ Log message construction using (Next state, current random data, Output)
      -> Transition message s m a
 mkTransition fm fs flog = Transition $ \gen -> do
   s <- S.get
   w <- lift . lift $ sample (fm s) gen
   let (a, s') = fs s w
-  lift $ L.logMessage $ flog a s' 
+  lift $ L.logMessage $ flog s' w a 
   S.put s'
   return a
 
